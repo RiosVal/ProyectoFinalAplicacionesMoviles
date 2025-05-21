@@ -11,12 +11,18 @@ const {
 
 const { protect, admin } = require('../middleware/auth');
 
+// === AÑADE ESTOS CONSOLE.LOGS TEMPORALES ===
+console.log('Type of protect:', typeof protect);
+console.log('Type of admin:', typeof admin);
+console.log('Type of createCountry:', typeof createCountry);
+// ===========================================
+
 // Rutas Públicas
 router.get('/', getCountries);
 router.get('/:id', getCountryById);
 
 // Rutas Privadas (Admin solamente)
-router.post('/', protect, admin, createCountry);
+router.post('/', protect, admin, createCountry); // Línea 19
 router.put('/:id', protect, admin, updateCountry);
 router.delete('/:id', protect, admin, deleteCountry);
 

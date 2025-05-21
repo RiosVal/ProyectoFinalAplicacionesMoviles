@@ -30,4 +30,7 @@ const authorize = (...roles) => {
     };
 };
 
-module.exports = { protect, authorize };
+// Define el middleware 'admin' utilizando la función 'authorize'
+const admin = authorize('Admin');
+
+module.exports = { protect, authorize, admin };

@@ -14,7 +14,6 @@ const dishRoutes = require('./routes/dishRoutes');
 const visitRoutes = require('./routes/visitRoutes');
 const famousPersonTagRoutes = require('./routes/famousPersonTagRoutes');
 const userRoutes = require('./routes/userRoutes');
-const reportRoutes = require('./routes/reportRoutes'); // Para las consultas de top-sites
 
 connectDB();
 
@@ -37,7 +36,6 @@ app.use('/api/dishes', dishRoutes);
 app.use('/api/visits', visitRoutes);
 app.use('/api/famous-person-tags', famousPersonTagRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/reports', reportRoutes);
 
 
 // Ruta de bienvenida (opcional)

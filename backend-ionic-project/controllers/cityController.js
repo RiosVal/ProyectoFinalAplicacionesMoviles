@@ -1,3 +1,4 @@
+const mongoose = require('mongoose'); 
 const City = require('../models/City');
 const Country = require('../models/Country'); // Necesario para verificar que el country existe
 const asyncHandler = require('express-async-handler'); // Para manejar errores asíncronos sin try/catch en cada función

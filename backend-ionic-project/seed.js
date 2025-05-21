@@ -45,6 +45,7 @@ const importData = async () => {
         const santaMarta = await City.create({ name: 'Santa Marta', country: colombia._id, coordinates: { lat: 11.2330, lng: -74.1990 } });
         const pasto = await City.create({ name: 'Pasto', country: colombia._id, coordinates: { lat: 1.2057, lng: -77.2818 } });
         const tunja = await City.create({ name: 'Tunja', country: colombia._id, coordinates: { lat: 5.53528, lng: -73.36778 } });
+        const zipaquira = await City.create({ name: 'Zipaquira', country: colombia._id, coordinates: { lat: 5.0247, lng: -74.0014 } });
 
 
         // --- CIUDADES ESTADOS UNIDOS ---
@@ -60,6 +61,7 @@ const importData = async () => {
         const dallas = await City.create({ name: 'Dallas', country: usa._id, coordinates: { lat: 32.7767, lng: -96.7970 } });
         const sanJose = await City.create({ name: 'San José', country: usa._id, coordinates: { lat: 37.3382, lng: -121.8863 } });
         const concord = await City.create({ name: 'Concord', country: usa._id, coordinates: { lat: 37.9781, lng: -122.0311 } });
+        const honolulu = await City.create({ name: 'Honolulu', country: usa._id, coordinates: { lat: 21.3047, lng: -157.8572 } });
 
         // --- USUARIOS ---
         console.log('Creando usuarios...');
