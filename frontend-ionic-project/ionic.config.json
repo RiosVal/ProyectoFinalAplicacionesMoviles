@@ -1,7 +1,0 @@
-{
-  "name": "frontend-ionic-project",
-  "integrations": {
-    "capacitor": {}
-  },
-  "type": "react-vite"
-}
