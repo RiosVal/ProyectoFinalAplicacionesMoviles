@@ -135,4 +135,5 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-prompts.txt
+promptsBackend.txt
+promptsFrontend.txt
