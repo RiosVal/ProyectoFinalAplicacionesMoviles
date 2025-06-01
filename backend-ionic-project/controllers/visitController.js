@@ -4,103 +4,80 @@ const Site = require('../models/Site');   // Para verificar el sitio
 const asyncHandler = require('express-async-handler');
 const mongoose = require('mongoose');
 
-// @desc    Registrar una nueva visita
+// @desc    Crear una nueva visita a un sitio
 // @route   POST /api/visits
-// @access  Private (cualquier usuario autenticado puede registrar una visita)
+// @access  Private (solo usuarios autenticados)
 const createVisit = asyncHandler(async (req, res) => {
-    // req.user._id viene del middleware 'protect'
-    const { siteId, timeStamp, method, photoUrl, lat, lng } = req.body;
+  const userId = req.user._id; // Asume que req.user._id viene del middleware de autenticación
+  const { siteId, method, photoUrl, coordinates } = req.body;
 
-    // 1. Validar campos requeridos
-    if (!siteId || !timeStamp || !method || !photoUrl || lat === undefined || lng === undefined) {
-        res.status(400);
-        throw new Error('Por favor, ingresa todos los campos requeridos: ID de sitio, marca de tiempo, método, URL de foto y coordenadas.');
-    }
+  // 1. Validar campos requeridos (básicos)
+  if (!siteId || !method) {
+    res.status(400);
+    throw new Error('Por favor, proporciona el ID del sitio y el método de verificación.');
+  }
 
-    // 2. Verificar si el sitio existe
-    const siteExists = await Site.findById(siteId);
-    if (!siteExists) {
-        res.status(404);
-        throw new Error('El sitio especificado no existe.');
-    }
+  // 2. Verificar que el sitio exista
+  const siteExists = await Site.findById(siteId);
+  if (!siteExists) {
+    res.status(404);
+    throw new Error('El sitio especificado no existe.');
+  }
 
-    // 3. Verificar que el usuario exista (req.user._id es el ID del usuario autenticado)
-    const userExists = await User.findById(req.user._id);
-    if (!userExists) {
-        res.status(404);
-        throw new Error('El usuario autenticado no fue encontrado.');
-    }
+  // 3. Crear la nueva visita
+  // Mongoose manejará la validación condicional de photoUrl gracias al schema.
+  const visit = await Visit.create({
+    user: userId,
+    site: siteId,
+    method: method,
+    photoUrl: photoUrl,
+    coordinates: coordinates
+  });
 
-    // 4. Crear la visita
-    const visit = await Visit.create({
-        user: req.user._id, // Asigna el ID del usuario autenticado automáticamente
-        site: siteId,
-        timeStamp,
-        method,
-        photoUrl,
-        coordinates: {
-            lat,
-            lng
-        }
+  if (visit) {
+    res.status(201).json({
+      message: 'Visita registrada con éxito',
+      visit,
     });
-
-    if (visit) {
-        // Popula para mostrar los nombres de usuario y sitio en la respuesta
-        const populatedVisit = await Visit.findById(visit._id)
-            .populate('user', 'email')
-            .populate('site', 'name');
-
-        res.status(201).json(populatedVisit);
-    } else {
-        res.status(400);
-        throw new Error('Datos de visita inválidos.');
-    }
+  } else {
+    res.status(400);
+    throw new Error('Datos de visita inválidos.');
+  }
 });
 
-// @desc    Obtener todas las visitas (filtrable por usuario o sitio)
+// @desc    Obtener todas las visitas (opcionalmente filtradas por usuario)
 // @route   GET /api/visits
-// @access  Public (cualquiera puede ver las visitas, aunque la lógica del frontend podría restringir)
+// @access  Private (se puede hacer público si se quita el 'protect' de la ruta)
 const getVisits = asyncHandler(async (req, res) => {
-    const { userId, siteId } = req.query; // Filtro por ID de usuario o ID de sitio
-    let query = {};
-
-    if (userId) {
-        if (!mongoose.Types.ObjectId.isValid(userId)) {
-            res.status(400);
-            throw new Error('ID de usuario inválido.');
-        }
-        query.user = userId;
-    }
-    if (siteId) {
-        if (!mongoose.Types.ObjectId.isValid(siteId)) {
-            res.status(400);
-            throw new Error('ID de sitio inválido.');
-        }
-        query.site = siteId;
+    // Si quieres que solo un admin vea todas las visitas, o un usuario vea las suyas.
+    // Para simplificar, asumimos que un usuario autenticado puede ver sus visitas.
+    // Si quieres que un admin vea TODAS las visitas, quita el filtro por user.
+    let filter = {};
+    if (req.user && req.user.role !== 'Administrador') { // Si no es admin, solo ve sus propias visitas
+      filter = { user: req.user._id };
     }
 
-    const visits = await Visit.find(query)
-        .populate('user', 'email')
-        .populate('site', 'name');
-
-    res.status(200).json(visits);
+    const visits = await Visit.find(filter)
+                               .populate('site', 'name description imageUrl')
+                               .populate('user', 'firstName email'); // También populamos el usuario para más detalles
+    res.json(visits);
 });
 
-// @desc    Obtener una visita por ID
+// @desc    Obtener una visita por su ID
 // @route   GET /api/visits/:id
-// @access  Public
+// @access  Private (solo el usuario dueño de la visita o un admin)
 const getVisitById = asyncHandler(async (req, res) => {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-        res.status(400);
-        throw new Error('ID de visita inválido.');
-    }
-
     const visit = await Visit.findById(req.params.id)
-        .populate('user', 'email')
-        .populate('site', 'name');
+                              .populate('site', 'name description imageUrl')
+                              .populate('user', 'firstName email');
 
     if (visit) {
-        res.status(200).json(visit);
+        // Asegurarse de que solo el dueño de la visita o un administrador pueda verla
+        if (visit.user._id.toString() !== req.user._id.toString() && req.user.role !== 'Administrador') {
+            res.status(403); // Forbidden
+            throw new Error('No estás autorizado para ver esta visita.');
+        }
+        res.json(visit);
     } else {
         res.status(404);
         throw new Error('Visita no encontrada.');
@@ -109,37 +86,30 @@ const getVisitById = asyncHandler(async (req, res) => {
 
 // @desc    Actualizar una visita
 // @route   PUT /api/visits/:id
-// @access  Private (solo el usuario que la creó o un Admin puede actualizarla)
+// @access  Private (solo el usuario dueño de la visita o un admin)
 const updateVisit = asyncHandler(async (req, res) => {
-    const { timeStamp, method, photoUrl, lat, lng } = req.body; // No permitimos cambiar user o site de una visita existente
-
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-        res.status(400);
-        throw new Error('ID de visita inválido.');
-    }
-
+    const { method, photoUrl, coordinates } = req.body; // No permitimos cambiar user o site
     const visit = await Visit.findById(req.params.id);
 
     if (visit) {
-        // Solo el usuario que creó la visita o un administrador puede actualizarla
-        if (String(visit.user) !== String(req.user._id) && req.user.role !== 'Administrador') {
+        // Asegurarse de que solo el dueño de la visita o un administrador pueda actualizarla
+        if (visit.user._id.toString() !== req.user._id.toString() && req.user.role !== 'Administrador') {
             res.status(403); // Forbidden
-            throw new Error('No tienes permiso para actualizar esta visita.');
+            throw new Error('No estás autorizado para actualizar esta visita.');
         }
 
-        visit.timeStamp = timeStamp !== undefined ? timeStamp : visit.timeStamp;
-        visit.method = method !== undefined ? method : visit.method;
-        visit.photoUrl = photoUrl !== undefined ? photoUrl : visit.photoUrl;
-        visit.coordinates.lat = lat !== undefined ? lat : visit.coordinates.lat;
-        visit.coordinates.lng = lng !== undefined ? lng : visit.coordinates.lng;
+        // Actualizar campos (Mongoose validará si photoUrl es necesario para 'PHOTO_UPLOAD')
+        visit.method = method || visit.method;
+        visit.photoUrl = photoUrl; // Puede ser null si se cambia de PHOTO a QR
+        visit.coordinates = coordinates || visit.coordinates;
+        visit.timeStamp = new Date(); // Opcional: Actualizar el timeStamp a la hora de la actualización
 
         const updatedVisit = await visit.save();
 
-        const populatedUpdatedVisit = await Visit.findById(updatedVisit._id)
-            .populate('user', 'email')
-            .populate('site', 'name');
-
-        res.status(200).json(populatedUpdatedVisit);
+        res.json({
+            message: 'Visita actualizada con éxito',
+            updatedVisit
+        });
     } else {
         res.status(404);
         throw new Error('Visita no encontrada.');
@@ -148,24 +118,19 @@ const updateVisit = asyncHandler(async (req, res) => {
 
 // @desc    Eliminar una visita
 // @route   DELETE /api/visits/:id
-// @access  Private (solo el usuario que la creó o un Admin puede eliminarla)
+// @access  Private (solo el usuario dueño de la visita o un admin)
 const deleteVisit = asyncHandler(async (req, res) => {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-        res.status(400);
-        throw new Error('ID de visita inválido.');
-    }
-
     const visit = await Visit.findById(req.params.id);
 
     if (visit) {
-        // Solo el usuario que creó la visita o un administrador puede eliminarla
-        if (String(visit.user) !== String(req.user._id) && req.user.role !== 'Administrador') {
+        // Asegurarse de que solo el dueño de la visita o un administrador pueda eliminarla
+        if (visit.user._id.toString() !== req.user._id.toString() && req.user.role !== 'Administrador') {
             res.status(403); // Forbidden
-            throw new Error('No tienes permiso para eliminar esta visita.');
+            throw new Error('No estás autorizado para eliminar esta visita.');
         }
 
-        await Visit.deleteOne({ _id: req.params.id });
-        res.status(200).json({ message: 'Visita eliminada correctamente.' });
+        await Visit.deleteOne({ _id: visit._id }); // Usar deleteOne para la eliminación
+        res.json({ message: 'Visita eliminada con éxito' });
     } else {
         res.status(404);
         throw new Error('Visita no encontrada.');

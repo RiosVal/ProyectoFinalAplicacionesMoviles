@@ -646,6 +646,35 @@ const importData = async () => {
             imageUrl: 'https://example.com/applepie.jpg'
         });
 
+        // --- VISITAS ---
+        console.log('Creando visitas...');
+        await Visit.create({
+            user: adminUser._id,
+            site: monserrate._id,
+            timeStamp: new Date(), // Usa timeStamp como lo tienes en el modelo
+            method: 'QR_SCAN',     // Usa 'method' y el valor 'QR_SCAN'
+            // photoUrl no es necesario para QR_SCAN
+            coordinates: { lat: 4.6063, lng: -74.0584 } // Opcional, puedes quitarlo si no lo necesitas en el seed
+        });
+
+        await Visit.create({
+            user: commonUser._id,
+            site: monserrate._id,
+            timeStamp: new Date(Date.now() - 86400000), // Hace 24 horas
+            method: 'PHOTO_UPLOAD', // Usa 'method' y el valor 'PHOTO_UPLOAD'
+            photoUrl: 'https://example.com/monserrate.jpg', // Requerido para PHOTO_UPLOAD
+            coordinates: { lat: 4.5977, lng: -74.0701 }
+        });
+
+        await Visit.create({
+            user: commonUser._id,
+            site: castilloSanFelipe._id,
+            timeStamp: new Date(Date.now() - (86400000 * 2)), // Hace 48 horas
+            method: 'QR_SCAN',
+            // photoUrl no es necesario
+            coordinates: { lat: 10.4248, lng: -75.5453 }
+        });        
+
 
         console.log('Datos importados con éxito!');
         process.exit();
