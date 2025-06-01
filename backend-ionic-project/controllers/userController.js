@@ -44,7 +44,7 @@ const getUserById = asyncHandler(async (req, res) => {
 // @route   PUT /api/users/:id
 // @access  Private/Admin (o el propio usuario)
 const updateUser = asyncHandler(async (req, res) => {
-    const { email, role } = req.body; // No permitimos cambiar la contraseña directamente aquí
+    const { firstName, email, role } = req.body; // No permitimos cambiar la contraseña directamente aquí
 
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         res.status(400);

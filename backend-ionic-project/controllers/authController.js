@@ -5,7 +5,7 @@ const generateToken = require('../utils/generateToken.js');
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = async (req, res) => {
-    const { email, password, role } = req.body;
+    const { firstName, email, password, role } = req.body;
 
     const userExists = await User.findOne({ email });
 
@@ -14,6 +14,7 @@ const registerUser = async (req, res) => {
     }
 
     const user = await User.create({
+        firstName,
         email,
         password,
         role: role || 'Usuario Común' // Por defecto Usuario Común si no se especifica
@@ -22,6 +23,7 @@ const registerUser = async (req, res) => {
     if (user) {
         res.status(201).json({
             _id: user._id,
+            firstName: user.firstName,
             email: user.email,
             role: user.role,
             token: generateToken(user._id)
@@ -42,6 +44,7 @@ const authUser = async (req, res) => {
     if (user && (await user.matchPassword(password))) {
         res.json({
             _id: user._id,
+            firstName: user.firstName,
             email: user.email,
             role: user.role,
             token: generateToken(user._id)
@@ -60,6 +63,7 @@ const getUserProfile = async (req, res) => {
     if (user) {
         res.json({
             _id: user._id,
+            firstName: user.firstName,
             email: user.email,
             role: user.role
         });

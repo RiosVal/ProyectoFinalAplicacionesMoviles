@@ -65,9 +65,18 @@ const importData = async () => {
 
         // --- USUARIOS ---
         console.log('Creando usuarios...');
-        const adminUser = await User.create({ email: 'admin@example.com', password: 'password123', role: 'Administrador' });
-        const commonUser = await User.create({ email: 'user@example.com', password: 'password123', role: 'Usuario Común' });
-
+        const adminUser = await User.create({
+            firstName: 'Administrador',
+            email: 'admin@example.com',
+            password: 'password123',
+            role: 'admin'
+        });
+        const commonUser = await User.create({
+            firstName: 'Usuario',
+            email: 'user@example.com',
+            password: 'password123',
+            role: 'user'
+        });
 
         // --- SITIOS (Colombia) ---
         console.log('Creando sitios de Colombia...');
